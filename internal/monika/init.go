@@ -8,6 +8,10 @@ import (
 	"hyperjumptech/monika/internal/probers"
 	"hyperjumptech/monika/tools"
 	"os"
+
+	CRON "hyperjumptech/monika/internal/cron"
+
+	"github.com/go-co-op/gocron/v2"
 )
 
 func Init() {
@@ -38,14 +42,14 @@ func Init() {
 
 	// Check whether the file exists
 	if _, err := os.Stat(fileToRead); os.IsNotExist(err) {
-		logger.Fatal().Msgf("Monika configuration file does not exists: %s", fileToRead)
+		logger.Fatal().Str("context", "monika").Str("type", "init").Msgf("Monika configuration file does not exists: %s", fileToRead)
 		os.Exit(1)
 	}
 
 	// Read file contents
 	contents, err := os.Open(fileToRead)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to read Monika configuration file")
+		logger.Fatal().Str("context", "monika").Str("type", "init").Err(err).Msg("Failed to read Monika configuration file")
 		os.Exit(1)
 	}
 	defer contents.Close()
@@ -53,7 +57,7 @@ func Init() {
 	// Parse Monika configuration file as a struct
 	conf, err := loader.LoadConfig(contents)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to parse Monika configuration file")
+		logger.Fatal().Str("context", "monika").Str("type", "init").Err(err).Msg("Failed to parse Monika configuration file")
 		os.Exit(1)
 	}
 
@@ -63,13 +67,24 @@ func Init() {
 	}
 
 	// Run probing
-	var geolocation *tools.GeolocationIP
-	geolocation, _ = tools.GetGeolocationIP()
-	if geolocation != nil {
-		logger.Info().Msgf("Monika is running from %s, %s (%s - %s)", geolocation.City, geolocation.Country, geolocation.Isp, geolocation.Query)
+	go func() {
+		var geolocation *tools.GeolocationIP
+		geolocation, _ = tools.GetGeolocationIP()
+		if geolocation != nil {
+			logger.Info().Str("context", "monika").Str("type", "init").Msgf("Monika is running from %s, %s (%s - %s)", geolocation.City, geolocation.Country, geolocation.Isp, geolocation.Query)
+		}
+	}()
+
+	logger.Info().Str("context", "monika").Str("type", "init").Msgf("Running %d probes with %d notifications", len(conf.Probes), len(conf.Notifications))
+
+	// Initialize CRON jobs
+	cron, err := gocron.NewScheduler()
+	if err != nil {
+		logger.Warn().Err(err).Str("context", "monika").Str("type", "init").Msg("Failed to initialize CRON scheduler, no CRON jobs will be executed.")
+		return
 	}
+	go CRON.StartCron(cron)
 
-	logger.Info().Msgf("Running %d probes with %d notifications", len(conf.Probes), len(conf.Notifications))
-
+	// Initialize probers
 	probers.InitializeProbes(conf)
 }

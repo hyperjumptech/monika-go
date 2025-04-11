@@ -50,11 +50,11 @@ func CreateProbes(config *loader.Config) {
 			for {
 				time.Sleep(interval)
 
-				// Make HTTP request to the URL
+				// Make ping request to the URL
 				failed := false
 				// Send the request
 				resp, err := sendPing(probe.Socket)
-				logger.Info().Msgf("%s - %s - %s - %d - %.3fms", probe.Name, probeHealth.Status, probe.Socket.Host, resp.StatusCode, resp.ResponseTime)
+				logger.Info().Str("context", "probe").Str("type", "ping").Msgf("%s - %s - %s - %d - %.3fms", probe.Name, probeHealth.Status, probe.Socket.Host, resp.StatusCode, resp.ResponseTime)
 
 				if err != nil {
 					// If error, mark as failed
@@ -87,13 +87,13 @@ func CreateProbes(config *loader.Config) {
 							probeHealth.Status = INCIDENT
 
 							// Send notification to the configured channel(s)
-							logger.Info().Msgf("Probe %s has failed, sending notification to the configured channel(s)", probe.Name)
+							logger.Info().Str("context", "probe").Str("type", "ping").Msgf("Probe %s has failed, sending notification to the configured channel(s)", probe.Name)
 							for _, notification := range config.Notifications {
 								notifier.SendNotification(notification, "Probe "+probe.Name+" is now in an incident state")
 							}
 						} else {
 							// Else, just log
-							logger.Info().Msgf("Probe %s is failing, attempt %d of %d until it may be considered an incident", probe.Name, probeHealth.IncidentCount, probeHealth.IncidentThreshold)
+							logger.Info().Str("context", "probe").Str("type", "ping").Msgf("Probe %s is failing, attempt %d of %d until it may be considered an incident", probe.Name, probeHealth.IncidentCount, probeHealth.IncidentThreshold)
 						}
 					}
 				} else {
@@ -109,13 +109,13 @@ func CreateProbes(config *loader.Config) {
 							probeHealth.Status = HEALTHY
 
 							// Send notification to the configured channel(s)
-							logger.Info().Msgf("Probe %s has recovered, sending notification to the configured channel(s)", probe.Name)
+							logger.Info().Str("context", "probe").Str("type", "ping").Msgf("Probe %s has recovered, sending notification to the configured channel(s)", probe.Name)
 							for _, notification := range config.Notifications {
 								notifier.SendNotification(notification, "Probe "+probe.Name+" is now in an healthy state")
 							}
 						} else {
 							// Else, just log
-							logger.Info().Msgf("Probe %s is recovering, attempt %d of %d until it may be considered a recovery", probe.Name, probeHealth.RecoveryCount, probeHealth.RecoveryThreshold)
+							logger.Info().Str("context", "probe").Str("type", "ping").Msgf("Probe %s is recovering, attempt %d of %d until it may be considered a recovery", probe.Name, probeHealth.RecoveryCount, probeHealth.RecoveryThreshold)
 						}
 					}
 				}

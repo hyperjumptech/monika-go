@@ -46,6 +46,8 @@ type Config struct {
 	Notifications []ConfigNotification `yaml:"notifications"`
 }
 
+var loadedConfig *Config
+
 func LoadConfig(reader io.Reader) (*Config, error) {
 	var contents []string
 
@@ -200,5 +202,12 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 		configStruct.Notifications = append(configStruct.Notifications, notificationStruct)
 	}
 
+	// Set the config
+	loadedConfig = &configStruct
+
 	return &configStruct, nil
+}
+
+func GetConfig() *Config {
+	return loadedConfig
 }
