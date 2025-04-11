@@ -22,15 +22,22 @@ type ConfigNotification struct {
 }
 
 type ConfigProbePing struct {
-	Uri string `yaml:"uri"`
+	Uri    string                    `yaml:"uri"`
+	Alerts []ConfigProbeRequestAlert `yaml:"alerts"`
+}
+
+type ConfigProbeRequestAlert struct {
+	Query   string `yaml:"query"`
+	Message string `yaml:"message"`
 }
 
 type ConfigProbeRequest struct {
-	Timeout           int16  `yaml:"timeout"`
-	Method            string `yaml:"method"`
-	URL               string `yaml:"url"`
-	RecoveryThreshold int    `yaml:"recovery_threshold"`
-	IncidentThreshold int    `yaml:"incident_threshold"`
+	Timeout           int16                     `yaml:"timeout"`
+	Method            string                    `yaml:"method"`
+	URL               string                    `yaml:"url"`
+	RecoveryThreshold int                       `yaml:"recovery_threshold"`
+	IncidentThreshold int                       `yaml:"incident_threshold"`
+	Alerts            []ConfigProbeRequestAlert `yaml:"alerts"`
 }
 
 type ConfigProbe struct {
@@ -121,13 +128,13 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 			probeRequests = probe.Requests
 		}
 
-		if probe.Ping == (ConfigProbePing{}) {
+		if probe.Ping.Uri == "" {
 			probePing = ConfigProbePing{}
 		} else {
 			probePing = probe.Ping
 		}
 
-		if probe.Ping != (ConfigProbePing{}) {
+		if probe.Ping.Uri != "" {
 			// Handle socket mapping
 			probeStruct.Ping = ConfigProbePing{
 				Uri: probePing.Uri,
@@ -140,6 +147,7 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 				var requestURL, requestMethod string
 				var requestTimeout int16
 				var requestRecoveryThreshold, requestIncidentThreshold int
+				var requestAlert []ConfigProbeRequestAlert
 
 				// Coalesce null values
 				// If URL is not set, throw an
@@ -170,11 +178,26 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 					requestRecoveryThreshold = request.RecoveryThreshold
 				}
 
-				// If incident threshold is not set, set it to 3 times
+				// If incident threshold is not set, set it to 5 times
 				if request.IncidentThreshold == 0 {
-					requestIncidentThreshold = 3 // Default incident threshold, 3 times
+					requestIncidentThreshold = 5 // Default incident threshold, 3 times
 				} else {
 					requestIncidentThreshold = request.IncidentThreshold
+				}
+
+				if len(request.Alerts) == 0 {
+					requestAlert = []ConfigProbeRequestAlert{
+						{
+							Query:   "response.status < 200 || response.status >= 300",
+							Message: "Response status is not between 200 and 300",
+						},
+						{
+							Query:   "response.time > 2000",
+							Message: "Response time is greater than 2 seconds",
+						},
+					}
+				} else {
+					requestAlert = request.Alerts
 				}
 
 				// Assign values
@@ -184,6 +207,7 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 					Method:            requestMethod,
 					RecoveryThreshold: requestRecoveryThreshold,
 					IncidentThreshold: requestIncidentThreshold,
+					Alerts:            requestAlert,
 				}
 				probeStruct.Requests = append(probeStruct.Requests, probeRequest)
 			}
