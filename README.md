@@ -55,8 +55,8 @@ Probes are defined in the configuration file. Each probe has the following prope
   - `url`: The URL to make the request to.
   - `recoveryThreshold`: The number of times the probe should recover before marking it as an incident.
   - `incidentThreshold`: The number of times the probe should fail before marking it as an incident.
-- `socket`: An optional socket to use for the probe.
-  - `host`: The host to use for the socket.
+- `ping`: Indicates that the probe is a Ping probe 
+  - `uri`: The URI to ping
 
 ### Notifications
 
