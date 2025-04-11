@@ -14,6 +14,7 @@ require github.com/prometheus-community/pro-bing v0.6.1
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-co-op/gocron/v2 v2.16.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
