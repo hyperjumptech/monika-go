@@ -8,9 +8,11 @@ import (
 	"hyperjumptech/monika/internal/probers"
 	"hyperjumptech/monika/tools"
 	"os"
+	"path/filepath"
 
 	CRON "hyperjumptech/monika/internal/cron"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/go-co-op/gocron/v2"
 )
 
@@ -40,14 +42,66 @@ func Init() {
 		fileToRead = "monika.yml"
 	}
 
+	// Watch for changes in the config file
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logger.Fatal().Str("context", "monika").Str("type", "init").Err(err).Msg("Failed to initialize file watcher")
+		os.Exit(1)
+	}
+
+	// Use absolute path for more reliable watching
+	absPath, err := filepath.Abs(fileToRead)
+	if err != nil {
+		logger.Fatal().Str("context", "monika").Str("type", "init").Err(err).Msgf("Failed to get absolute path for %s", fileToRead)
+		os.Exit(1)
+	}
+
+	// Add the config file to the watcher
+	err = watcher.Add(absPath)
+	if err != nil {
+		logger.Fatal().Str("context", "monika").Str("type", "init").Err(err).Msgf("Failed to watch file: %s", absPath)
+		os.Exit(1)
+	}
+
+	// Start the goroutine to handle events
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					logger.Warn().Str("context", "monika").Str("type", "watcher").Msg("Watcher event channel closed")
+					return
+				}
+
+				if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
+					logger.Info().Str("context", "monika").Str("type", "watcher").
+						Msgf("File %s has been modified, reloading configuration", event.Name)
+					readConfig(fileToRead)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					logger.Warn().Str("context", "monika").Str("type", "watcher").Msg("Watcher error channel closed")
+					return
+				}
+				logger.Error().Str("context", "monika").Str("type", "watcher").Err(err).Msg("Error watching file")
+			}
+		}
+	}()
+
+	// Read config for the first time
+	readConfig(absPath)
+}
+
+func readConfig(configPath string) {
+	logger := logger.GetLogger()
 	// Check whether the file exists
-	if _, err := os.Stat(fileToRead); os.IsNotExist(err) {
-		logger.Fatal().Str("context", "monika").Str("type", "init").Msgf("Monika configuration file does not exists: %s", fileToRead)
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		logger.Fatal().Str("context", "monika").Str("type", "init").Msgf("Monika configuration file does not exists: %s", configPath)
 		os.Exit(1)
 	}
 
 	// Read file contents
-	contents, err := os.Open(fileToRead)
+	contents, err := os.Open(configPath)
 	if err != nil {
 		logger.Fatal().Str("context", "monika").Str("type", "init").Err(err).Msg("Failed to read Monika configuration file")
 		os.Exit(1)
@@ -62,6 +116,8 @@ func Init() {
 	}
 
 	// Send startup message
+	logger.Info().Str("context", "monika").Str("type", "init").Msgf("Monika configuration loaded from %s", configPath)
+	logger.Info().Str("context", "monika").Str("type", "init").Msgf("Running %d probes with %d notifications", len(conf.Probes), len(conf.Notifications))
 	for _, notification := range conf.Notifications {
 		notifier.SendNotification(notification, "Monika is starting up")
 	}
@@ -74,8 +130,6 @@ func Init() {
 			logger.Info().Str("context", "monika").Str("type", "init").Msgf("Monika is running from %s, %s (%s - %s)", geolocation.City, geolocation.Country, geolocation.Isp, geolocation.Query)
 		}
 	}()
-
-	logger.Info().Str("context", "monika").Str("type", "init").Msgf("Running %d probes with %d notifications", len(conf.Probes), len(conf.Notifications))
 
 	// Initialize CRON jobs
 	cron, err := gocron.NewScheduler()
