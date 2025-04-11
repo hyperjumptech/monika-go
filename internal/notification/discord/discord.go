@@ -32,12 +32,12 @@ func send(client *http.Client, notification loader.ConfigNotification, message C
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(message)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to encode Discord notification payload")
+		logger.Error().Err(err).Str("context", "notification").Str("type", "discord").Msg("Failed to encode Discord notification payload")
 	}
 
 	resp, err := http.Post(notification.Data.URL, "application/json", payload)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to send Discord notification")
+		logger.Error().Err(err).Str("context", "notification").Str("type", "discord").Msg("Failed to send Discord notification")
 	}
 
 	defer resp.Body.Close()

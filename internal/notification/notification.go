@@ -18,6 +18,6 @@ func SendNotification(notification loader.ConfigNotification, message string) {
 	case "discord":
 		discord.SendNotification(notification, discord.GeneratePayload(message))
 	default:
-		logger.Error().Msgf("Unsupported notification type: %s", notification.Type)
+		logger.Error().Str("context", "notification").Str("type", "discord").Msgf("Unsupported notification type: %s", notification.Type)
 	}
 }
