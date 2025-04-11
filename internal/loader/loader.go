@@ -21,8 +21,8 @@ type ConfigNotification struct {
 	Data ConfigNotificationData `yaml:"data"`
 }
 
-type ConfigProbeSocket struct {
-	Host string `yaml:"host"`
+type ConfigProbePing struct {
+	Uri string `yaml:"uri"`
 }
 
 type ConfigProbeRequest struct {
@@ -38,13 +38,15 @@ type ConfigProbe struct {
 	Name     string `yaml:"name"`
 	Interval int8   `yaml:"interval"`
 	Requests []ConfigProbeRequest
-	Socket   ConfigProbeSocket
+	Ping     ConfigProbePing
 }
 
 type Config struct {
 	Probes        []ConfigProbe        `yaml:"probes"`
 	Notifications []ConfigNotification `yaml:"notifications"`
 }
+
+var loadedConfig *Config
 
 func LoadConfig(reader io.Reader) (*Config, error) {
 	var contents []string
@@ -82,7 +84,7 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 		var probeID, probeName string
 		var probeInterval int8
 		var probeRequests []ConfigProbeRequest
-		var probeSocket ConfigProbeSocket
+		var probePing ConfigProbePing
 
 		// If ID is not set, generate a new one
 		if probe.ID == "" {
@@ -110,7 +112,7 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 			Name:     probeName,
 			Interval: probeInterval,
 			Requests: make([]ConfigProbeRequest, 0),
-			Socket:   ConfigProbeSocket{},
+			Ping:     ConfigProbePing{},
 		}
 
 		if probe.Requests == nil {
@@ -119,16 +121,16 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 			probeRequests = probe.Requests
 		}
 
-		if probe.Socket == (ConfigProbeSocket{}) {
-			probeSocket = ConfigProbeSocket{}
+		if probe.Ping == (ConfigProbePing{}) {
+			probePing = ConfigProbePing{}
 		} else {
-			probeSocket = probe.Socket
+			probePing = probe.Ping
 		}
 
-		if probe.Socket != (ConfigProbeSocket{}) {
+		if probe.Ping != (ConfigProbePing{}) {
 			// Handle socket mapping
-			probeStruct.Socket = ConfigProbeSocket{
-				Host: probeSocket.Host,
+			probeStruct.Ping = ConfigProbePing{
+				Uri: probePing.Uri,
 			}
 
 			configStruct.Probes = append(configStruct.Probes, probeStruct)
@@ -200,5 +202,12 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 		configStruct.Notifications = append(configStruct.Notifications, notificationStruct)
 	}
 
+	// Set the config
+	loadedConfig = &configStruct
+
 	return &configStruct, nil
+}
+
+func GetConfig() *Config {
+	return loadedConfig
 }
