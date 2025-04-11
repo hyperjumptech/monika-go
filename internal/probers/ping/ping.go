@@ -53,8 +53,8 @@ func CreateProbes(config *loader.Config) {
 				// Make ping request to the URL
 				failed := false
 				// Send the request
-				resp, err := sendPing(probe.Socket)
-				logger.Info().Str("context", "probe").Str("type", "ping").Msgf("%s - %s - %s - %d - %.3fms", probe.Name, probeHealth.Status, probe.Socket.Host, resp.StatusCode, resp.ResponseTime)
+				resp, err := sendPing(probe.Ping)
+				logger.Info().Str("context", "probe").Str("type", "ping").Msgf("%s - %s - %s - %d - %.3fms", probe.Name, probeHealth.Status, probe.Ping.Uri, resp.StatusCode, resp.ResponseTime)
 
 				if err != nil {
 					// If error, mark as failed
@@ -124,9 +124,9 @@ func CreateProbes(config *loader.Config) {
 	}
 }
 
-func sendPing(socket loader.ConfigProbeSocket) (*PingResult, error) {
+func sendPing(ping loader.ConfigProbePing) (*PingResult, error) {
 	// Create a new pinger
-	pinger, err := probing.NewPinger(socket.Host)
+	pinger, err := probing.NewPinger(ping.Uri)
 	if err != nil {
 		return nil, err
 	}

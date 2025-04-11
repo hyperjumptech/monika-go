@@ -26,7 +26,7 @@ func Check(conf *loader.Config) {
 	// We only want to check SSL of HTTPS probes
 	HTTProbes := make([]loader.ConfigProbe, 0)
 	for _, probe := range conf.Probes {
-		if probe.Socket == (loader.ConfigProbeSocket{}) {
+		if probe.Ping == (loader.ConfigProbePing{}) {
 			HTTProbes = append(HTTProbes, probe)
 		}
 

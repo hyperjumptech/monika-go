@@ -13,7 +13,7 @@ func InitializeProbes(config *loader.Config) {
 
 	// Filter probes based on type
 	for _, probe := range config.Probes {
-		if probe.Socket != (loader.ConfigProbeSocket{}) {
+		if probe.Ping != (loader.ConfigProbePing{}) {
 			PingProbes = append(PingProbes, probe)
 		} else {
 			HTTPProbes = append(HTTPProbes, probe)
