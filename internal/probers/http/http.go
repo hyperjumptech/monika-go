@@ -50,14 +50,24 @@ func CreateProbes(config *loader.Config) {
 	logger := logger.GetLogger()
 
 	for _, probe := range config.Probes {
-		var probeHealth *ProbeHealth
+		// Determine the largest recovery and incident thresholds
+		recoveryThreshold := probe.Requests[0].RecoveryThreshold
+		incidentThreshold := probe.Requests[0].IncidentThreshold
 
 		for _, request := range probe.Requests {
-			probeHealth = &ProbeHealth{
-				Status:            HEALTHY,
-				RecoveryThreshold: request.IncidentThreshold,
-				IncidentThreshold: request.RecoveryThreshold,
+			if request.RecoveryThreshold > recoveryThreshold {
+				recoveryThreshold = request.RecoveryThreshold
 			}
+
+			if request.IncidentThreshold > incidentThreshold {
+				incidentThreshold = request.IncidentThreshold
+			}
+		}
+
+		probeHealth := &ProbeHealth{
+			Status:            HEALTHY,
+			RecoveryThreshold: recoveryThreshold,
+			IncidentThreshold: incidentThreshold,
 		}
 
 		// Run probe using goroutine
@@ -76,7 +86,6 @@ func CreateProbes(config *loader.Config) {
 				for _, request := range probe.Requests {
 					// Send the request
 					resp, err := sendRequest(request, timeout)
-					logger.Info().Str("context", "probe").Str("type", "http").Msgf("%s - %s - %s - %s - %d - %.3fms", probe.Name, probeHealth.Status, request.Method, request.URL, resp.StatusCode, resp.ResponseTime)
 
 					// If error, mark as failed
 					if err != nil {
@@ -86,8 +95,15 @@ func CreateProbes(config *loader.Config) {
 							RequestURL:   request.URL,
 						}
 						failed = true
+
+						// Log error without trying to access resp fields
+						logger.Info().Str("context", "probe").Str("type", "http").Msgf("%s - %s - %s - %s - Error: %s",
+							probe.Name, probeHealth.Status, request.Method, request.URL, err.Error())
+
 						break
 					}
+
+					logger.Info().Str("context", "probe").Str("type", "http").Msgf("%s - %s - %s - %s - %d - %.3fms", probe.Name, probeHealth.Status, request.Method, request.URL, resp.StatusCode, resp.ResponseTime)
 
 					// If response time is greater than the timeout, mark as failed
 					if resp.ResponseTime > float64(request.Timeout) {
