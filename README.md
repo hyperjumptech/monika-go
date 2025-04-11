@@ -54,8 +54,8 @@ Probes are defined in the configuration file. Each probe has the following prope
   - `timeout`: The timeout in milliseconds for the request.
   - `method`: The HTTP method to use for the request.
   - `url`: The URL to make the request to.
-  - `recoveryThreshold`: The number of times the probe should recover before marking it as an incident.
-  - `incidentThreshold`: The number of times the probe should fail before marking it as an incident.
+  - `recoveryThreshold`: The number of times the probe should recover before marking it as an incident. By default, it will use the largest value of `recoveryThreshold` from all requests.
+  - `incidentThreshold`: The number of times the probe should fail before marking it as an incident. By default, it will use the largest value of `incidentThreshold` from all requests.
   - `alerts`: An array of alerts to be evaluated for the probe. (More details below)
     - `query`: The query to evaluate.
     - `message`: The message to send if the query evaluates to true.
