@@ -34,3 +34,6 @@ monika.*.json
 !monika.example.yml
 
 # End of https://www.toptal.com/developers/gitignore/api/go
+
+# MacOS
+.DS_Store

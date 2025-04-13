@@ -11,8 +11,33 @@ import (
 	"github.com/google/uuid"
 )
 
+// ConfigNotificationData holds the configuration for notifications
 type ConfigNotificationData struct {
-	URL string `yaml:"url"`
+	// Discord notification
+	URL string `yaml:"url,omitempty"`
+
+	// SMTP notification
+	Recipients []string `yaml:"recipients,omitempty"`
+	Host       string   `yaml:"hostname,omitempty"`
+	Port       int      `yaml:"port,omitempty"`
+	Username   string   `yaml:"username,omitempty"`
+	Password   string   `yaml:"password,omitempty"`
+}
+
+// GetDiscordConfig returns the Discord configuration
+func (d *ConfigNotificationData) GetDiscordConfig() (string, bool) {
+	if d.URL != "" {
+		return d.URL, true
+	}
+	return "", false
+}
+
+// GetSMTPConfig returns the SMTP configuration if all required fields are present
+func (d *ConfigNotificationData) GetSMTPConfig() (host string, port int, username, password string, recipients []string, ok bool) {
+	if d.Host != "" && d.Port > 0 && len(d.Recipients) > 0 {
+		return d.Host, d.Port, d.Username, d.Password, d.Recipients, true
+	}
+	return "", 0, "", "", nil, false
 }
 
 type ConfigNotification struct {

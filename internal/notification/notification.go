@@ -5,7 +5,8 @@ import (
 
 	"hyperjumptech/monika/internal/loader"
 	"hyperjumptech/monika/internal/logger"
-	discord "hyperjumptech/monika/internal/notification/discord"
+	"hyperjumptech/monika/internal/notification/discord"
+	"hyperjumptech/monika/internal/notification/smtp"
 )
 
 func SendNotification(notification loader.ConfigNotification, message string) {
@@ -17,6 +18,8 @@ func SendNotification(notification loader.ConfigNotification, message string) {
 	switch notification.Type {
 	case "discord":
 		discord.SendNotification(notification, discord.GeneratePayload(message))
+	case "smtp":
+		smtp.SendNotification(notification, smtp.GeneratePayload(message))
 	default:
 		logger.Error().Str("context", "notification").Str("type", "discord").Msgf("Unsupported notification type: %s", notification.Type)
 	}
